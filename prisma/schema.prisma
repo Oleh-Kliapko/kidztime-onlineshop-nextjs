@@ -1,0 +1,137 @@
+model User {
+  id                String              @id @default(uuid())
+  email             String              @unique
+  password          String
+  role              String // user, admin
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  sessions          Session[]
+  orders            Order[]
+  cartItems         CartItem[]
+  rewards           RewardPoints[]
+  notificationQueue NotificationQueue[]
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionState String // active, inactive, ended
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id          String          @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  category    String
+  ageGroup    String
+  gender      String?
+  images      ProductImage[]
+  reviews     ProductReview[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductReview {
+  id        String   @id @default(uuid())
+  productId String
+  rating    Int // 1-5 зірок
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id            String          @id @default(uuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        String // pending, completed, refunded
+  totalAmount   Float
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  items         OrderItem[]
+  shippingOrder ShippingOrder[]
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Float
+  status    String // normal, refunded, exchanged
+}
+
+model RewardPoints {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int
+  type      String // credit, debit
+  createdAt DateTime @default(now())
+}
+
+model Voucher {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  discount  Float
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model ShippingOrder {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  trackingId String?
+  status     String // pending, shipped, delivered
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model NotificationQueue {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // email, sms
+  message   String
+  status    String // pending, sent, failed
+  createdAt DateTime @default(now())
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
